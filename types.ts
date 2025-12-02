@@ -9,6 +9,7 @@ export interface Tier {
   name: string;
   color: string;
   criteria: string;
+  threshold?: number; // Numeric threshold for logic
 }
 
 export interface Achievement {
@@ -27,4 +28,14 @@ export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   isError?: boolean;
+}
+
+export interface UserStats {
+  username: string;
+  avatarUrl: string;
+  name: string;
+  publicRepos: number;
+  followers: number;
+  mergedPRs: number;
+  totalStars: number;
 }

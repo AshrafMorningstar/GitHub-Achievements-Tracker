@@ -1,14 +1,22 @@
 import React, { useState, useMemo } from 'react';
 import { ACHIEVEMENTS } from './constants';
-import { BadgeStatus } from './types';
+import { BadgeStatus, UserStats } from './types';
 import BadgeCard from './components/BadgeCard';
 import GeminiAdvisor from './components/GeminiAdvisor';
 import StatsVisualizer from './components/StatsVisualizer';
-import { Github, AlertTriangle, Book, Search, Filter } from 'lucide-react';
+import ProfileStats from './components/ProfileStats';
+import { fetchUserStats } from './services/githubService';
+import { Github, AlertTriangle, Book, Search, Filter, User, Loader2, ArrowRight } from 'lucide-react';
 
 const App: React.FC = () => {
   const [filter, setFilter] = useState<BadgeStatus | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
+  
+  // User Profile State
+  const [usernameInput, setUsernameInput] = useState('');
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const [userError, setUserError] = useState('');
 
   const filteredAchievements = useMemo(() => {
     return ACHIEVEMENTS.filter(a => {
@@ -18,6 +26,28 @@ const App: React.FC = () => {
       return matchesFilter && matchesSearch;
     });
   }, [filter, search]);
+
+  const handleUserSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!usernameInput.trim()) return;
+
+    setIsLoadingUser(true);
+    setUserError('');
+    
+    try {
+      const stats = await fetchUserStats(usernameInput.trim());
+      if (stats) {
+        setUserStats(stats);
+        setUsernameInput('');
+      } else {
+        setUserError('User not found or GitHub API error.');
+      }
+    } catch (err) {
+      setUserError('Failed to fetch user data.');
+    } finally {
+      setIsLoadingUser(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-github-dark pb-20">
@@ -38,9 +68,38 @@ const App: React.FC = () => {
         
         {/* Sidebar / Controls */}
         <aside className="lg:col-span-3 space-y-6">
+          
+          {/* User Profile Checker - Top Priority */}
+          {!userStats ? (
+            <div className="bg-github-card border border-github-border rounded-lg p-4">
+              <label className="text-xs font-semibold text-github-muted uppercase tracking-wider mb-2 block flex items-center gap-2">
+                <User size={12} /> Check Your Progress
+              </label>
+              <form onSubmit={handleUserSearch} className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Enter GitHub username..." 
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  className="w-full bg-github-darker border border-github-border rounded-md pl-3 pr-10 py-2 text-sm text-github-text focus:outline-none focus:border-github-accent transition-colors"
+                />
+                <button 
+                  type="submit" 
+                  disabled={isLoadingUser || !usernameInput}
+                  className="absolute right-1 top-1 p-1.5 text-github-muted hover:text-white bg-github-border hover:bg-github-green rounded disabled:opacity-50"
+                >
+                  {isLoadingUser ? <Loader2 size={14} className="animate-spin"/> : <ArrowRight size={14} />}
+                </button>
+              </form>
+              {userError && <p className="text-red-400 text-xs mt-2">{userError}</p>}
+            </div>
+          ) : (
+            <ProfileStats stats={userStats} onClear={() => setUserStats(null)} />
+          )}
+
           <div className="bg-github-card border border-github-border rounded-lg p-4 sticky top-24">
             <div className="mb-6">
-              <label className="text-xs font-semibold text-github-muted uppercase tracking-wider mb-2 block">Search</label>
+              <label className="text-xs font-semibold text-github-muted uppercase tracking-wider mb-2 block">Search Badges</label>
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 text-github-muted w-4 h-4" />
                 <input 
@@ -112,7 +171,7 @@ const App: React.FC = () => {
 
             {filteredAchievements.length > 0 ? (
               filteredAchievements.map(achievement => (
-                <BadgeCard key={achievement.id} achievement={achievement} />
+                <BadgeCard key={achievement.id} achievement={achievement} userStats={userStats} />
               ))
             ) : (
               <div className="text-center py-12 border border-github-border border-dashed rounded-lg">

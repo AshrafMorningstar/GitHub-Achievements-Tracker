@@ -9,9 +9,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     howToEarn: 'Open a Pull Request and have it merged.',
     status: BadgeStatus.ACTIVE,
     tiers: [
-      { name: 'Bronze', color: '#cd7f32', criteria: '2 Merged PRs' },
-      { name: 'Silver', color: '#c0c0c0', criteria: '16 Merged PRs' },
-      { name: 'Gold', color: '#ffd700', criteria: '128 Merged PRs' },
+      { name: 'Bronze', color: '#cd7f32', criteria: '2 Merged PRs', threshold: 2 },
+      { name: 'Silver', color: '#c0c0c0', criteria: '16 Merged PRs', threshold: 16 },
+      { name: 'Gold', color: '#ffd700', criteria: '128 Merged PRs', threshold: 128 },
     ],
     guideSteps: [
       'Fork a repository you want to contribute to.',
@@ -29,7 +29,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     howToEarn: 'Merge a Pull Request without any reviews.',
     status: BadgeStatus.ACTIVE,
     tiers: [
-      { name: 'Base', color: '#58a6ff', criteria: '1 Merged PR without review' }
+      { name: 'Base', color: '#58a6ff', criteria: '1 Merged PR without review', threshold: 1 }
     ],
     guideSteps: [
       'Create a new repository.',
@@ -47,7 +47,7 @@ export const ACHIEVEMENTS: Achievement[] = [
     howToEarn: 'Close an issue or PR you opened within 5 minutes.',
     status: BadgeStatus.ACTIVE,
     tiers: [
-      { name: 'Base', color: '#58a6ff', criteria: 'Close within 5 mins' }
+      { name: 'Base', color: '#58a6ff', criteria: 'Close within 5 mins', threshold: 1 }
     ],
     guideSteps: [
       'Go to one of your repositories.',
@@ -65,9 +65,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     howToEarn: 'Co-author a commit that gets merged.',
     status: BadgeStatus.ACTIVE,
     tiers: [
-      { name: 'Bronze', color: '#cd7f32', criteria: '1 Co-authored commit' },
-      { name: 'Silver', color: '#c0c0c0', criteria: '10 Co-authored commits' },
-      { name: 'Gold', color: '#ffd700', criteria: '24 Co-authored commits' },
+      { name: 'Bronze', color: '#cd7f32', criteria: '1 Co-authored commit', threshold: 1 },
+      { name: 'Silver', color: '#c0c0c0', criteria: '10 Co-authored commits', threshold: 10 },
+      { name: 'Gold', color: '#ffd700', criteria: '24 Co-authored commits', threshold: 24 },
     ],
     guideSteps: [
       'Find a friend to collaborate with.',
@@ -84,9 +84,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     howToEarn: 'Receive stars on your repositories.',
     status: BadgeStatus.ACTIVE,
     tiers: [
-      { name: 'Bronze', color: '#cd7f32', criteria: '16 Stars' },
-      { name: 'Silver', color: '#c0c0c0', criteria: '128 Stars' },
-      { name: 'Gold', color: '#ffd700', criteria: '512 Stars' },
+      { name: 'Bronze', color: '#cd7f32', criteria: '16 Stars', threshold: 16 },
+      { name: 'Silver', color: '#c0c0c0', criteria: '128 Stars', threshold: 128 },
+      { name: 'Gold', color: '#ffd700', criteria: '512 Stars', threshold: 512 },
     ],
     guideSteps: [
       'Create a useful open-source project or resource.',
@@ -102,9 +102,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     howToEarn: 'Have your answer marked as correct in a GitHub Discussion.',
     status: BadgeStatus.ACTIVE,
     tiers: [
-      { name: 'Bronze', color: '#cd7f32', criteria: '2 Accepted Answers' },
-      { name: 'Silver', color: '#c0c0c0', criteria: '8 Accepted Answers' },
-      { name: 'Gold', color: '#ffd700', criteria: '16 Accepted Answers' },
+      { name: 'Bronze', color: '#cd7f32', criteria: '2 Accepted Answers', threshold: 2 },
+      { name: 'Silver', color: '#c0c0c0', criteria: '8 Accepted Answers', threshold: 8 },
+      { name: 'Gold', color: '#ffd700', criteria: '16 Accepted Answers', threshold: 16 },
     ],
     guideSteps: [
       'Find repositories that use GitHub Discussions.',
