@@ -78,3 +78,6 @@ notifications:
 ---
 
 This description focuses on the tracking and analytics aspect with clear visualization elements, multi-platform support, and practical tools for serious achievement collectors who want data-driven insights into their GitHub journey.
+
+
+<img width="1918" height="803" alt="image" src="https://github.com/user-attachments/assets/03e5a7b8-0701-4857-95ac-eadbf8247765" />
