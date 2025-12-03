@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Loader2 } from 'lucide-react';
+import { Send, X, MessageCircle, Sparkles, User, Info } from 'lucide-react';
 import { getGeminiResponse } from '../services/geminiService';
 import { ChatMessage } from '../types';
 import ReactMarkdown from 'react-markdown';
 
-const GeminiAdvisor: React.FC = () => {
+const GuideWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'model', text: 'Hi! I\'m your GitHub Achievement Advisor. Ask me how to unlock a specific badge!' }
+    { role: 'model', text: 'Hi! I\'m your **Strategy Guide**. Ask me about any badge to get specific instructions on how to earn it.' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -19,7 +19,7 @@ const GeminiAdvisor: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isOpen]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -43,41 +43,67 @@ const GeminiAdvisor: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-auto font-sans">
       {/* Chat Window */}
       {isOpen && (
-        <div className="bg-github-card border border-github-border w-80 md:w-96 h-[500px] rounded-xl shadow-2xl flex flex-col mb-4 overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div className="glass-panel border border-github-border/50 w-[90vw] md:w-[380px] h-[550px] rounded-3xl shadow-2xl flex flex-col mb-4 overflow-hidden animate-fade-in origin-bottom-right ring-1 ring-white/10">
           
           {/* Header */}
-          <div className="bg-github-hover p-4 border-b border-github-border flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Bot className="text-github-accent" size={20} />
-              <h3 className="font-semibold text-github-text">Achievement Advisor</h3>
+          <div className="bg-github-darker/80 p-5 border-b border-github-border/50 flex justify-between items-center relative overflow-hidden backdrop-blur-md">
+            <div className="flex items-center gap-3 relative z-10">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-github-accent to-purple-500 p-[1px]">
+                 <div className="w-full h-full rounded-full bg-github-darker flex items-center justify-center">
+                    <Sparkles size={18} className="text-white" />
+                 </div>
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-base tracking-wide">Strategy Guide</h3>
+                <span className="text-[11px] text-github-muted font-medium tracking-wider uppercase">Interactive Helper</span>
+              </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-github-muted hover:text-white">
-              <X size={18} />
+            <button 
+              onClick={() => setIsOpen(false)} 
+              className="text-github-muted hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+            >
+              <X size={20} />
             </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-github-dark">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-gradient-to-b from-github-dark/40 to-transparent">
             {messages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-slide-up`}>
+                {msg.role === 'model' && (
+                   <div className="w-6 h-6 rounded-full bg-github-border flex-shrink-0 flex items-center justify-center mt-2">
+                     <Info size={12} className="text-github-muted" />
+                   </div>
+                )}
                 <div 
-                  className={`max-w-[85%] rounded-lg p-3 text-sm ${
+                  className={`max-w-[85%] rounded-2xl p-3.5 text-sm leading-relaxed shadow-sm backdrop-blur-sm ${
                     msg.role === 'user' 
-                      ? 'bg-github-accent text-white' 
-                      : 'bg-github-border text-github-text'
+                      ? 'bg-github-accent text-white rounded-tr-sm' 
+                      : 'bg-white/5 border border-white/10 text-github-text rounded-tl-sm'
                   }`}
                 >
-                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                  <ReactMarkdown 
+                    components={{
+                      p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                      a: ({node, ...props}) => <a className="underline decoration-white/30 hover:decoration-white" {...props} />,
+                      strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+                      ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1 opacity-90" {...props} />,
+                    }}
+                  >
+                    {msg.text}
+                  </ReactMarkdown>
                 </div>
               </div>
             ))}
             {isLoading && (
-               <div className="flex justify-start">
-                 <div className="bg-github-border text-github-text rounded-lg p-3">
-                   <Loader2 className="animate-spin w-4 h-4" />
+               <div className="flex justify-start gap-3 pl-1">
+                 <div className="bg-white/5 border border-white/10 rounded-2xl rounded-tl-sm p-4 flex items-center gap-1.5 w-16">
+                    <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                    <span className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
                  </div>
                </div>
             )}
@@ -85,26 +111,23 @@ const GeminiAdvisor: React.FC = () => {
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-github-border bg-github-card">
-            <div className="flex gap-2">
+          <div className="p-4 border-t border-github-border/30 bg-github-darker/60 backdrop-blur-xl">
+            <div className="flex gap-2 items-center bg-github-dark/50 border border-github-border/50 rounded-xl p-1.5 pr-2 focus-within:border-github-accent/50 transition-all shadow-inner">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyPress}
                 placeholder="Ask about a badge..."
-                className="flex-1 bg-github-darker border border-github-border rounded-md px-3 py-2 text-sm text-github-text focus:outline-none focus:border-github-accent"
+                className="flex-1 bg-transparent border-none py-2 px-3 text-sm text-github-text focus:outline-none placeholder-github-muted/50"
               />
               <button 
                 onClick={handleSend}
                 disabled={isLoading || !input.trim()}
-                className="bg-github-green hover:bg-green-700 text-white p-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="bg-github-accent hover:bg-indigo-500 text-white p-2 rounded-lg disabled:opacity-50 disabled:bg-transparent transition-all shadow-lg shadow-indigo-500/20"
               >
-                <Send size={18} />
+                <Send size={16} />
               </button>
-            </div>
-            <div className="text-[10px] text-github-muted mt-2 text-center">
-               AI responses may vary. Check official docs.
             </div>
           </div>
         </div>
@@ -113,12 +136,15 @@ const GeminiAdvisor: React.FC = () => {
       {/* Toggle Button */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-github-accent hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-105 flex items-center justify-center"
+        className={`relative p-4 rounded-full shadow-2xl transition-all duration-500 hover:scale-110 active:scale-95 group overflow-hidden ${isOpen ? 'bg-github-darker border border-github-border' : 'bg-github-text'}`}
       >
-        {isOpen ? <X size={24} /> : <Bot size={28} />}
+        <div className={`absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isOpen ? 'hidden' : ''}`}></div>
+        <div className="relative z-10">
+           {isOpen ? <X size={24} className="text-github-muted" /> : <MessageCircle size={24} className="text-github-darker fill-current" />}
+        </div>
       </button>
     </div>
   );
 };
 
-export default GeminiAdvisor;
+export default GuideWidget;

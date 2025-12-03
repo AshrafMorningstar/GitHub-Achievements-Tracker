@@ -1,152 +1,124 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Achievement, BadgeStatus, UserStats } from '../types';
-import { ChevronDown, ChevronUp, BookOpen, Lock, CheckCircle, Trophy } from 'lucide-react';
+import { CheckCircle, ArrowUpRight, Lock, Sparkles } from 'lucide-react';
 
 interface BadgeCardProps {
   achievement: Achievement;
   userStats: UserStats | null;
+  isOwned: boolean;
+  onClick: () => void;
 }
 
-const BadgeCard: React.FC<BadgeCardProps> = ({ achievement, userStats }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  // Logic to determine progress based on badge ID and user stats
+const BadgeCard: React.FC<BadgeCardProps> = ({ achievement, userStats, isOwned, onClick }) => {
+  
+  // Logic
   const getProgress = () => {
     if (!userStats) return null;
-
     let current = 0;
-    if (achievement.id === 'pull-shark') {
-      current = userStats.mergedPRs;
-    } else if (achievement.id === 'starstruck') {
-      current = userStats.totalStars;
-    } else {
-      return null; // Not trackable via this simple API logic
-    }
+    if (achievement.id === 'pull-shark') current = userStats.mergedPRs;
+    else if (achievement.id === 'starstruck') current = userStats.totalStars;
+    else return null;
 
-    // Find next tier
     const nextTier = achievement.tiers?.find(t => (t.threshold || 0) > current);
     const maxTier = achievement.tiers?.[achievement.tiers.length - 1];
-    
-    // If no next tier and we have tiers, we might be maxed out
     const isMaxed = !nextTier && maxTier && current >= (maxTier.threshold || 0);
     const target = nextTier ? nextTier.threshold || 1 : (maxTier?.threshold || 1);
-    
-    // Calculate percentage
     const percent = Math.min(100, Math.round((current / target) * 100));
 
-    return {
-      current,
-      target,
-      percent,
-      nextTierName: nextTier?.name || 'Max Level',
-      isMaxed
-    };
+    return { percent, isMaxed };
   };
 
   const progress = getProgress();
 
-  const getStatusColor = (status: BadgeStatus) => {
-    switch (status) {
-      case BadgeStatus.ACTIVE:
-        return 'text-github-green border-github-green';
-      case BadgeStatus.RETIRED:
-        return 'text-red-400 border-red-400';
-      case BadgeStatus.PROFILE_HIGHLIGHT:
-        return 'text-purple-400 border-purple-400';
-      default:
-        return 'text-gray-400 border-gray-400';
-    }
-  };
-
   return (
-    <div className="bg-github-card border border-github-border rounded-lg p-4 mb-4 hover:border-github-muted transition-colors duration-200">
-      <div className="flex items-start justify-between cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-        <div className="flex items-center gap-4">
-          <div className="text-4xl w-12 h-12 flex items-center justify-center bg-github-darker rounded-full border border-github-border relative">
-            {achievement.emoji}
-            {progress?.isMaxed && (
-              <div className="absolute -top-1 -right-1 bg-yellow-500 text-github-darker rounded-full p-0.5 border border-github-darker" title="Max Level Achieved!">
-                <Trophy size={10} />
-              </div>
-            )}
-          </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-github-text flex items-center gap-2">
-              {achievement.name}
-              <span className={`text-xs px-2 py-0.5 border rounded-full ${getStatusColor(achievement.status)}`}>
-                {achievement.status}
-              </span>
-            </h3>
-            <p className="text-github-muted text-sm mt-1">{achievement.description}</p>
-            
-            {/* Progress Bar in Header (Collapsed View) */}
-            {progress && (
-              <div className="mt-2 w-full max-w-xs">
-                <div className="flex justify-between text-xs text-github-muted mb-1">
-                  <span>{progress.current} / {progress.isMaxed ? 'Max' : progress.target}</span>
-                  <span>{progress.isMaxed ? 'Completed' : `${progress.percent}% to ${progress.nextTierName}`}</span>
-                </div>
-                <div className="w-full bg-github-darker rounded-full h-1.5 border border-github-border">
-                  <div 
-                    className={`h-1.5 rounded-full ${progress.isMaxed ? 'bg-yellow-500' : 'bg-github-green'}`} 
-                    style={{ width: `${progress.percent}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
-          </div>
+    <div 
+      onClick={onClick}
+      className={`
+        group glass-panel rounded-[2rem] p-8 cursor-pointer relative overflow-visible flex flex-col h-full
+        transition-all duration-500 ease-out transform
+        hover:scale-[1.03] hover:-translate-y-2 hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.6)]
+        border border-white/5 hover:border-white/20
+      `}
+    >
+      {/* Premium Hover Tooltip */}
+      <div className="premium-tooltip">
+        <div className="flex items-center gap-2 mb-1 text-github-accent font-bold uppercase text-[10px] tracking-widest">
+          <Sparkles size={10} /> How to Earn
         </div>
-        <button className="text-github-muted hover:text-github-accent transition-colors self-center">
-          {isExpanded ? <ChevronUp /> : <ChevronDown />}
-        </button>
+        <p className="font-medium text-white/90">{achievement.howToEarn}</p>
       </div>
 
-      {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-github-border animate-fade-in">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Left Col: Tiers & How To */}
-            <div>
-              <h4 className="text-sm font-semibold text-github-text uppercase tracking-wider mb-2 flex items-center gap-2">
-                <CheckCircle size={16} /> How to Earn
-              </h4>
-              <p className="text-sm text-github-muted mb-4">{achievement.howToEarn}</p>
+      {/* Dynamic Hover Glow Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-github-accent/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-[2rem]" />
+
+      {/* Top Section: Hero Circle & Status */}
+      <div className="flex justify-between items-start mb-8 relative z-10">
+        
+        {/* NEW BIGGER CIRCLE UI */}
+        <div className="relative group-hover:scale-105 transition-transform duration-500">
+           {/* Outer Glow */}
+           <div className={`absolute inset-0 rounded-full blur-2xl opacity-40 transition-opacity duration-700 ${isOwned ? 'bg-github-success/30' : 'bg-github-accent/20 group-hover:opacity-60'}`}></div>
+           
+           {/* The Ring Container */}
+           <div className={`w-20 h-20 rounded-full flex items-center justify-center relative ${isOwned ? 'chromatic-ring' : 'bg-white/5 border border-white/10 shadow-inner'}`}>
+              <div className="w-full h-full rounded-full bg-github-darker flex items-center justify-center text-4xl relative z-10 drop-shadow-2xl">
+                 {achievement.emoji}
+              </div>
               
-              {achievement.tiers && achievement.tiers.length > 0 && (
-                <div className="mb-4">
-                   <h4 className="text-sm font-semibold text-github-text uppercase tracking-wider mb-2">Tiers</h4>
-                   <div className="space-y-2">
-                     {achievement.tiers.map((tier) => {
-                       const isUnlocked = progress ? progress.current >= (tier.threshold || 0) : false;
-                       return (
-                         <div key={tier.name} className={`flex items-center justify-between text-sm p-2 rounded border transition-colors ${isUnlocked ? 'bg-github-hover border-github-green/50' : 'bg-github-darker border-github-border'}`}>
-                           <div className="flex items-center gap-2">
-                              <span className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: tier.color }}></span>
-                              <span className={`font-medium ${isUnlocked ? 'text-white' : 'text-github-text'}`}>{tier.name}</span>
-                              {isUnlocked && <CheckCircle size={12} className="text-github-green" />}
-                           </div>
-                           <span className="text-github-muted">{tier.criteria}</span>
-                         </div>
-                       );
-                     })}
-                   </div>
+              {/* Ownership Badge */}
+              {isOwned && (
+                <div className="absolute -bottom-1 -right-1 bg-github-success text-github-darker rounded-full p-1.5 border-[3px] border-github-darker z-20 shadow-xl animate-bounce" style={{ animationDuration: '3s' }}>
+                  <CheckCircle size={14} strokeWidth={4} />
                 </div>
               )}
-            </div>
+           </div>
+        </div>
 
-            {/* Right Col: Guide */}
-            <div className="bg-github-darker p-4 rounded-lg border border-github-border">
-               <h4 className="text-sm font-semibold text-github-accent uppercase tracking-wider mb-3 flex items-center gap-2">
-                 <BookOpen size={16} /> Strategy Guide
-               </h4>
-               <ol className="list-decimal list-inside space-y-2 text-sm text-github-text">
-                 {achievement.guideSteps.map((step, idx) => (
-                   <li key={idx} className="pl-1 leading-relaxed">
-                     <span className="text-github-muted">{step}</span>
-                   </li>
-                 ))}
-               </ol>
-            </div>
+        {/* Status Pill */}
+        <div className="flex flex-col items-end gap-2">
+           {achievement.status === BadgeStatus.RETIRED && (
+             <span className="text-[10px] font-bold tracking-widest text-github-muted/50 uppercase flex items-center gap-1">
+               <Lock size={10} /> Archived
+             </span>
+           )}
+           <div className={`
+             px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider border backdrop-blur-md transition-colors
+             ${isOwned 
+               ? 'bg-github-success/10 text-github-success border-github-success/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
+               : 'bg-white/5 text-github-muted border-white/10 group-hover:bg-white/10 group-hover:text-white'}
+           `}>
+             {isOwned ? 'Collected' : 'Available'}
+           </div>
+        </div>
+      </div>
+
+      {/* Content Info */}
+      <div className="flex-1 relative z-10">
+        <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-github-accent transition-colors duration-300 flex items-center gap-2 tracking-tight">
+          {achievement.name}
+          <ArrowUpRight size={18} className="opacity-0 -translate-x-4 text-github-muted group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+        </h3>
+        <p className="text-sm text-github-muted leading-relaxed line-clamp-3 group-hover:text-github-text transition-colors">
+          {achievement.description}
+        </p>
+      </div>
+
+      {/* Progress Bar (if applicable) */}
+      {progress && (
+        <div className="mt-8 relative z-10 pt-4 border-t border-white/5">
+          <div className="flex justify-between text-[11px] font-bold uppercase tracking-wider text-github-muted mb-2">
+            <span className="flex items-center gap-1">Progress</span>
+            <span className={progress.isMaxed ? 'text-yellow-400 drop-shadow-md' : ''}>
+              {progress.percent}%
+            </span>
+          </div>
+          <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden border border-white/5">
+             <div 
+               className={`h-full rounded-full transition-all duration-1000 ease-out relative ${progress.isMaxed ? 'bg-gradient-to-r from-yellow-500 to-amber-300 shadow-[0_0_15px_rgba(250,204,21,0.6)]' : 'bg-gradient-to-r from-github-accent to-purple-500'}`} 
+               style={{ width: `${progress.percent}%` }}
+             >
+               <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+             </div>
           </div>
         </div>
       )}

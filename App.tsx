@@ -1,46 +1,103 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ACHIEVEMENTS } from './constants';
 import { BadgeStatus, UserStats } from './types';
 import BadgeCard from './components/BadgeCard';
-import GeminiAdvisor from './components/GeminiAdvisor';
+import BadgeDetailView from './components/BadgeDetailModal'; // Kept filename for diff simplicity
+import GuideWidget from './components/GeminiAdvisor'; // Kept filename
 import StatsVisualizer from './components/StatsVisualizer';
 import ProfileStats from './components/ProfileStats';
 import { fetchUserStats } from './services/githubService';
-import { Github, AlertTriangle, Book, Search, Filter, User, Loader2, ArrowRight } from 'lucide-react';
+import { Github, Search, Filter, User, Loader2, ArrowRight, Sun, Moon, Trophy, Lock, SlidersHorizontal, LayoutGrid } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [filter, setFilter] = useState<BadgeStatus | 'ALL'>('ALL');
-  const [search, setSearch] = useState('');
+  // Theme (Dark Mode Default for Premium Feel)
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+  }, []);
+
+  // State
+  const [headerSearch, setHeaderSearch] = useState('');
+  const [filterOwned, setFilterOwned] = useState<'all' | 'owned' | 'unowned'>('all');
+  const [sortOption, setSortOption] = useState<'name' | 'status' | 'rarity'>('rarity');
+  const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null);
   
-  // User Profile State
+  // User Data
   const [usernameInput, setUsernameInput] = useState('');
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [userError, setUserError] = useState('');
+  
+  // Manual Collection
+  const [manualOwnedIds, setManualOwnedIds] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('manualOwnedIds');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
 
-  const filteredAchievements = useMemo(() => {
-    return ACHIEVEMENTS.filter(a => {
-      const matchesFilter = filter === 'ALL' || a.status === filter;
-      const matchesSearch = a.name.toLowerCase().includes(search.toLowerCase()) || 
-                            a.description.toLowerCase().includes(search.toLowerCase());
-      return matchesFilter && matchesSearch;
+  useEffect(() => {
+    localStorage.setItem('manualOwnedIds', JSON.stringify(Array.from(manualOwnedIds)));
+  }, [manualOwnedIds]);
+
+  const isBadgeOwned = (id: string) => {
+    if (manualOwnedIds.has(id)) return true;
+    if (userStats) {
+      if (id === 'pull-shark' && userStats.mergedPRs >= 2) return true;
+      if (id === 'starstruck' && userStats.totalStars >= 16) return true;
+    }
+    return false;
+  };
+
+  const toggleManualOwn = (id: string) => {
+    setManualOwnedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-  }, [filter, search]);
+  };
+
+  const processedAchievements = useMemo(() => {
+    let result = ACHIEVEMENTS.filter(a => {
+      const matchesSearch = a.name.toLowerCase().includes(headerSearch.toLowerCase()) || 
+                            a.description.toLowerCase().includes(headerSearch.toLowerCase());
+      const owned = isBadgeOwned(a.id);
+      const matchesOwned = filterOwned === 'all' || 
+                           (filterOwned === 'owned' && owned) || 
+                           (filterOwned === 'unowned' && !owned);
+      return matchesSearch && matchesOwned;
+    });
+
+    result.sort((a, b) => {
+      if (sortOption === 'name') return a.name.localeCompare(b.name);
+      if (sortOption === 'status') return a.status.localeCompare(b.status);
+      if (sortOption === 'rarity') {
+         const getScore = (status: BadgeStatus) => {
+             if (status === BadgeStatus.PROFILE_HIGHLIGHT) return 3;
+             if (status === BadgeStatus.ACTIVE) return 2;
+             return 1;
+         };
+         return getScore(b.status) - getScore(a.status) || a.name.localeCompare(b.name);
+      }
+      return 0;
+    });
+    return result;
+  }, [headerSearch, filterOwned, sortOption, manualOwnedIds, userStats]);
+
+  const earnableAchievements = processedAchievements.filter(a => a.status !== BadgeStatus.RETIRED);
+  const retiredAchievements = processedAchievements.filter(a => a.status === BadgeStatus.RETIRED);
+  const selectedBadge = ACHIEVEMENTS.find(a => a.id === selectedBadgeId);
 
   const handleUserSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!usernameInput.trim()) return;
-
     setIsLoadingUser(true);
     setUserError('');
-    
     try {
       const stats = await fetchUserStats(usernameInput.trim());
       if (stats) {
         setUserStats(stats);
         setUsernameInput('');
       } else {
-        setUserError('User not found or GitHub API error.');
+        setUserError('User not found.');
       }
     } catch (err) {
       setUserError('Failed to fetch user data.');
@@ -50,177 +107,174 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-github-dark pb-20">
+    <div className="min-h-screen pb-20 font-sans text-github-text relative overflow-x-hidden selection:bg-github-accent/30 selection:text-white">
+      
+      {/* --- Premium Animated Background --- */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-github-dark">
+         {/* Moving Gradient Orbs */}
+         <div className="absolute top-[10%] left-[20%] w-[500px] h-[500px] rounded-full bg-blue-600/10 blur-[120px] animate-blob mix-blend-screen"></div>
+         <div className="absolute top-[40%] right-[20%] w-[400px] h-[400px] rounded-full bg-purple-600/10 blur-[120px] animate-blob mix-blend-screen" style={{ animationDelay: '2s' }}></div>
+         <div className="absolute bottom-[10%] left-[30%] w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[120px] animate-blob mix-blend-screen" style={{ animationDelay: '4s' }}></div>
+         {/* Noise Overlay */}
+         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] brightness-100 contrast-150"></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-github-card border-b border-github-border py-4 sticky top-0 z-40 shadow-sm">
-        <div className="container mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Github className="text-github-text w-8 h-8" />
-            <h1 className="text-xl font-bold text-github-text tracking-tight">GitHub Achievements Tracker</h1>
+      <header className="sticky top-0 z-40 border-b border-github-border/30 bg-[#030014]/80 backdrop-blur-xl">
+        <div className="container mx-auto px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setSelectedBadgeId(null)}>
+            <div className="relative w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl border border-white/10 group-hover:bg-white/10 transition-colors">
+               <Github size={24} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-white tracking-wide">GitHub Achievements</h1>
+              <p className="text-[10px] text-github-muted uppercase tracking-widest font-semibold">Premium Tracker</p>
+            </div>
           </div>
-          <a href="https://github.com/drknzz/GitHub-Achievements" target="_blank" rel="noreferrer" className="text-sm text-github-accent hover:underline hidden md:block">
-            Contribution Source
+
+          {/* Search */}
+          <div className="flex-1 w-full md:w-auto max-w-md relative group">
+             <Search className="absolute left-4 top-3 text-github-muted w-4 h-4 transition-colors group-focus-within:text-github-accent" />
+             <input 
+               type="text" 
+               placeholder="Search database..." 
+               value={headerSearch}
+               onChange={(e) => setHeaderSearch(e.target.value)}
+               className="w-full bg-white/5 border border-white/10 rounded-full pl-11 pr-4 py-2.5 text-sm text-white placeholder-github-muted/50 focus:outline-none focus:border-github-accent/50 focus:bg-white/10 transition-all shadow-inner"
+             />
+          </div>
+
+          <a href="#" className="hidden lg:flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest text-github-muted hover:text-white border border-white/5 hover:border-white/20 transition-all bg-white/5 hover:bg-white/10">
+            <Github size={14} /> Contribute
           </a>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Sidebar / Controls */}
-        <aside className="lg:col-span-3 space-y-6">
+      <main className="container mx-auto px-4 md:px-8 py-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           
-          {/* User Profile Checker - Top Priority */}
-          {!userStats ? (
-            <div className="bg-github-card border border-github-border rounded-lg p-4">
-              <label className="text-xs font-semibold text-github-muted uppercase tracking-wider mb-2 block flex items-center gap-2">
-                <User size={12} /> Check Your Progress
-              </label>
-              <form onSubmit={handleUserSearch} className="relative">
-                <input 
-                  type="text" 
-                  placeholder="Enter GitHub username..." 
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  className="w-full bg-github-darker border border-github-border rounded-md pl-3 pr-10 py-2 text-sm text-github-text focus:outline-none focus:border-github-accent transition-colors"
-                />
-                <button 
-                  type="submit" 
-                  disabled={isLoadingUser || !usernameInput}
-                  className="absolute right-1 top-1 p-1.5 text-github-muted hover:text-white bg-github-border hover:bg-github-green rounded disabled:opacity-50"
-                >
-                  {isLoadingUser ? <Loader2 size={14} className="animate-spin"/> : <ArrowRight size={14} />}
-                </button>
-              </form>
-              {userError && <p className="text-red-400 text-xs mt-2">{userError}</p>}
-            </div>
-          ) : (
-            <ProfileStats stats={userStats} onClear={() => setUserStats(null)} />
-          )}
-
-          <div className="bg-github-card border border-github-border rounded-lg p-4 sticky top-24">
-            <div className="mb-6">
-              <label className="text-xs font-semibold text-github-muted uppercase tracking-wider mb-2 block">Search Badges</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 text-github-muted w-4 h-4" />
-                <input 
-                  type="text" 
-                  placeholder="Find a badge..." 
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-github-darker border border-github-border rounded-md pl-9 pr-3 py-2 text-sm text-github-text focus:outline-none focus:border-github-accent transition-colors"
-                />
+          {/* Sidebar */}
+          <aside className={`lg:col-span-3 space-y-8 transition-opacity duration-500 ${selectedBadgeId ? 'hidden lg:block lg:opacity-50 lg:pointer-events-none' : 'block'}`}>
+            {!userStats ? (
+              <div className="glass-panel rounded-[2rem] p-8 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-github-accent/10 rounded-full blur-3xl -mr-8 -mt-8 pointer-events-none"></div>
+                <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                  <User size={16} className="text-github-accent" /> Connect Profile
+                </h3>
+                <form onSubmit={handleUserSearch} className="relative">
+                  <input 
+                    type="text" 
+                    placeholder="username" 
+                    value={usernameInput}
+                    onChange={(e) => setUsernameInput(e.target.value)}
+                    className="w-full bg-black/20 border border-white/10 rounded-xl pl-4 pr-10 py-3 text-sm text-white focus:outline-none focus:border-github-accent transition-all font-mono"
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={isLoadingUser || !usernameInput}
+                    className="absolute right-2 top-2 p-1.5 text-github-muted hover:text-white rounded-lg transition-colors"
+                  >
+                    {isLoadingUser ? <Loader2 size={14} className="animate-spin"/> : <ArrowRight size={14} />}
+                  </button>
+                </form>
               </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-github-muted uppercase tracking-wider mb-2 block flex items-center gap-2">
-                <Filter size={12} /> Filter by Status
-              </label>
-              <div className="space-y-1">
-                <button 
-                  onClick={() => setFilter('ALL')}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${filter === 'ALL' ? 'bg-github-accent text-white' : 'text-github-muted hover:text-github-text hover:bg-github-hover'}`}
-                >
-                  All Badges
-                </button>
-                <button 
-                  onClick={() => setFilter(BadgeStatus.ACTIVE)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${filter === BadgeStatus.ACTIVE ? 'bg-github-accent text-white' : 'text-github-muted hover:text-github-text hover:bg-github-hover'}`}
-                >
-                  Active
-                </button>
-                <button 
-                  onClick={() => setFilter(BadgeStatus.PROFILE_HIGHLIGHT)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${filter === BadgeStatus.PROFILE_HIGHLIGHT ? 'bg-github-accent text-white' : 'text-github-muted hover:text-github-text hover:bg-github-hover'}`}
-                >
-                  Highlights
-                </button>
-                <button 
-                  onClick={() => setFilter(BadgeStatus.RETIRED)}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${filter === BadgeStatus.RETIRED ? 'bg-github-accent text-white' : 'text-github-muted hover:text-github-text hover:bg-github-hover'}`}
-                >
-                  Retired
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <StatsVisualizer achievements={ACHIEVEMENTS} />
-        </aside>
-
-        {/* Main Content */}
-        <section className="lg:col-span-9">
-          
-          {/* Intro Card */}
-          <div className="bg-gradient-to-r from-github-card to-github-darker border border-github-border rounded-lg p-6 mb-8">
-            <h2 className="text-2xl font-bold text-github-text mb-2">Unlock Your Potential</h2>
-            <p className="text-github-muted leading-relaxed">
-              GitHub Achievements are digital badges displayed on your profile that celebrate milestones, contributions, and engagement. 
-              Use this guide to track, understand, and unlock every available badge.
-            </p>
-          </div>
-
-          {/* List */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-2">
-               <h3 className="text-lg font-semibold text-github-text">
-                 {filter === 'ALL' ? 'All Badges' : `${filter} Badges`}
-               </h3>
-               <span className="text-sm text-github-muted">{filteredAchievements.length} results</span>
-            </div>
-
-            {filteredAchievements.length > 0 ? (
-              filteredAchievements.map(achievement => (
-                <BadgeCard key={achievement.id} achievement={achievement} userStats={userStats} />
-              ))
             ) : (
-              <div className="text-center py-12 border border-github-border border-dashed rounded-lg">
-                <p className="text-github-muted">No badges found matching your criteria.</p>
+              <ProfileStats stats={userStats} onClear={() => setUserStats(null)} />
+            )}
+            <StatsVisualizer achievements={ACHIEVEMENTS} />
+          </aside>
+
+          {/* Content Area */}
+          <section className="lg:col-span-9 min-h-[80vh]">
+            
+            {selectedBadgeId && selectedBadge ? (
+              // --- DETAIL VIEW ---
+              <BadgeDetailView 
+                achievement={selectedBadge}
+                userStats={userStats}
+                isOwned={isBadgeOwned(selectedBadgeId)}
+                onBack={() => setSelectedBadgeId(null)}
+                onToggleOwn={() => toggleManualOwn(selectedBadgeId)}
+                onSelectRelated={(id) => setSelectedBadgeId(id)}
+              />
+            ) : (
+              // --- GALLERY GRID ---
+              <div className="space-y-10 animate-fade-in">
+                {/* Controls */}
+                <div className="flex flex-wrap items-center gap-4 justify-between mb-8">
+                  <h2 className="text-3xl font-bold text-white tracking-tight">Gallery</h2>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <select 
+                        value={filterOwned} 
+                        onChange={(e) => setFilterOwned(e.target.value as any)}
+                        className="appearance-none bg-white/5 border border-white/10 text-github-muted text-xs font-bold uppercase tracking-wider rounded-lg pl-4 pr-8 py-2.5 hover:bg-white/10 cursor-pointer focus:outline-none"
+                      >
+                        <option value="all">View All</option>
+                        <option value="owned">Collected</option>
+                        <option value="unowned">Missing</option>
+                      </select>
+                      <Filter size={12} className="absolute right-3 top-3 text-github-muted pointer-events-none" />
+                    </div>
+
+                    <div className="relative">
+                      <select 
+                        value={sortOption} 
+                        onChange={(e) => setSortOption(e.target.value as any)}
+                        className="appearance-none bg-white/5 border border-white/10 text-github-muted text-xs font-bold uppercase tracking-wider rounded-lg pl-4 pr-8 py-2.5 hover:bg-white/10 cursor-pointer focus:outline-none"
+                      >
+                        <option value="rarity">Rarity</option>
+                        <option value="name">Name</option>
+                        <option value="status">Status</option>
+                      </select>
+                      <LayoutGrid size={12} className="absolute right-3 top-3 text-github-muted pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid */}
+                <div className="space-y-12">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {earnableAchievements.map((achievement, idx) => (
+                      <div key={achievement.id} style={{ animationDelay: `${idx * 0.05}s` }} className="animate-slide-up">
+                        <BadgeCard 
+                          achievement={achievement} 
+                          userStats={userStats}
+                          isOwned={isBadgeOwned(achievement.id)}
+                          onClick={() => setSelectedBadgeId(achievement.id)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {retiredAchievements.length > 0 && (
+                    <div className="pt-12 border-t border-white/5">
+                      <div className="flex items-center gap-3 mb-8 opacity-60">
+                         <Lock size={18} />
+                         <h3 className="text-xl font-bold">Legacy Archive</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 opacity-60 hover:opacity-100 transition-opacity duration-500">
+                        {retiredAchievements.map((achievement) => (
+                          <BadgeCard 
+                            key={achievement.id}
+                            achievement={achievement} 
+                            userStats={userStats}
+                            isOwned={isBadgeOwned(achievement.id)}
+                            onClick={() => setSelectedBadgeId(achievement.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-          </div>
-
-          {/* Troubleshooting Section */}
-          <div className="mt-12 bg-github-card border border-github-border rounded-lg p-6">
-            <h3 className="text-xl font-bold text-github-text mb-4 flex items-center gap-2">
-              <AlertTriangle className="text-yellow-500" /> Troubleshooting
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <h4 className="font-semibold text-github-text text-sm">Why isn't my badge showing?</h4>
-                <ul className="list-disc list-inside text-sm text-github-muted space-y-1">
-                  <li>Processing can take up to 24 hours.</li>
-                  <li>Check "Show private contributions" settings.</li>
-                  <li>Forked repo work must be merged upstream.</li>
-                  <li>Ensure your commit email matches your account.</li>
-                </ul>
-              </div>
-              <div className="space-y-3">
-                <h4 className="font-semibold text-github-text text-sm">Common Issues</h4>
-                <ul className="list-disc list-inside text-sm text-github-muted space-y-1">
-                  <li>Changes not on the default branch.</li>
-                  <li>One-time achievements (Quickdraw) already claimed.</li>
-                  <li>Browser cache (try hard refreshing).</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* Contribution */}
-          <div className="mt-8 p-4 bg-github-darker border border-github-border rounded-lg flex items-center gap-4">
-             <Book className="text-github-accent flex-shrink-0" />
-             <div>
-               <h4 className="font-bold text-github-text text-sm">Contribute to this Guide</h4>
-               <p className="text-xs text-github-muted mt-1">
-                 This resource is community-maintained. Found a new badge? 
-                 Submit an issue or PR to the repository.
-               </p>
-             </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </main>
 
-      <GeminiAdvisor />
+      <GuideWidget />
     </div>
   );
 };

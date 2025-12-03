@@ -1,40 +1,54 @@
-import { GoogleGenAI } from "@google/genai";
 import { ACHIEVEMENTS } from "../constants";
 
-// Initialize Gemini
-// Ensure API_KEY is present in your environment variables. 
-// In a real build, we'd check for process.env.API_KEY.
-const apiKey = process.env.API_KEY || ''; 
-const ai = new GoogleGenAI({ apiKey });
+// This service is now strictly local logic. No AI involvement.
+// It searches the predefined constants to provide helpful guide information.
 
 export const getGeminiResponse = async (userPrompt: string): Promise<string> => {
-  if (!apiKey) {
-    return "API Key is missing. Please set REACT_APP_GEMINI_API_KEY or allow the demo to access the key.";
-  }
+  // Simulate a brief "processing" delay for natural UI feel
+  await new Promise(resolve => setTimeout(resolve, 600));
 
-  try {
-    const context = `
-      You are an expert on GitHub Achievements and Badges.
-      You are helping a user with their GitHub profile.
-      Here is the database of known achievements you can reference:
-      ${JSON.stringify(ACHIEVEMENTS.map(a => ({ name: a.name, description: a.description, howToEarn: a.howToEarn, guide: a.guideSteps })))}
-      
-      If the user asks about a specific badge, explain it clearly using the guide steps provided in the context.
-      If they ask how to get a badge, give a friendly, tactical explanation.
-      Keep answers concise and helpful. Format with Markdown.
+  const lowerPrompt = userPrompt.toLowerCase();
+
+  // 1. Keyword Matching Strategy
+  const foundAchievement = ACHIEVEMENTS.find(a => 
+    lowerPrompt.includes(a.name.toLowerCase()) || 
+    lowerPrompt.includes(a.id.toLowerCase())
+  );
+
+  if (foundAchievement) {
+    return `
+### **${foundAchievement.emoji} ${foundAchievement.name} Strategy**
+
+${foundAchievement.description}
+
+**Official Requirements:**
+${foundAchievement.howToEarn}
+
+**Step-by-Step Guide:**
+${foundAchievement.guideSteps.map(step => `- ${step}`).join('\n')}
+
+${foundAchievement.tiers ? `**Tiers:**\n${foundAchievement.tiers.map(t => `- **${t.name}**: ${t.criteria}`).join('\n')}` : ''}
     `;
-
-    const model = 'gemini-2.5-flash';
-    const response = await ai.models.generateContent({
-      model: model,
-      contents: [
-        { role: 'user', parts: [{ text: context + "\n\nUser Question: " + userPrompt }] }
-      ]
-    });
-
-    return response.text || "I couldn't generate a response at this time.";
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "Sorry, I encountered an error while contacting the AI knowledge base.";
   }
+
+  // 2. General Help Matching
+  if (lowerPrompt.includes('stat') || lowerPrompt.includes('track') || lowerPrompt.includes('connect')) {
+    return `
+### **Tracking Your Stats**
+You can connect your real GitHub profile by entering your username in the sidebar input field. 
+This will automatically check your eligibility for badges like **Pull Shark** and **Starstruck** based on real data.
+    `;
+  }
+
+  // 3. Fallback
+  return `
+### **How can I help?**
+I am your interactive Profile Guide. I can help you with:
+
+- **Specific Badges**: Ask about "YOLO", "Pull Shark", or "Quickdraw".
+- **Strategies**: Ask "How to get stars?" or "How to merge PRs?".
+- **Profile Tips**: Ask how to improve your GitHub presence.
+
+*Type the name of a badge to see its detailed guide.*
+  `;
 };
